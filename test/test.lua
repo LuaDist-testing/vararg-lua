@@ -22,6 +22,8 @@ local replace = vararg.replace
 local append = vararg.append
 local concat = vararg.concat
 local map = vararg.map
+local count = vararg.count
+local at = vararg.at
 
 -- auxiliary functions----------------------------------------------------------
 
@@ -67,12 +69,12 @@ local function asserterror(expected, f, ...)
 	assert(ok == false, "error was expected")
 	if os.getenv("VARARG") ~= "vararg-lua" then
 		assert(actual:find(expected, 1, true), "wrong error, got "..actual)
-	end
+end
 end
 
 -- test 'pack' function --------------------------------------------------------
 
-local function testpack(...)
+local function make_testpack(pack) return function (...)
 	local v = {...}
 	local n = select("#", ...)
 	local p = pack(...)
@@ -92,14 +94,21 @@ local function testpack(...)
 			assertsame(v, i, j, p(i-n-1, j-n-1))
 		end
 	end
-end
+end end
 
-testpack()
-testpack({},{},{})
-testpack(nil)
-testpack(nil, nil)
-testpack(nil, 1, nil)
-testpack(unpack(values, 1, 254))
+make_testpack(pack)()
+make_testpack(pack)({},{},{})
+make_testpack(pack)(nil)
+make_testpack(pack)(nil, nil)
+make_testpack(pack)(nil, 1, nil)
+make_testpack(pack)(unpack(values, 1, 254))
+
+make_testpack(vararg)()
+make_testpack(vararg)({},{},{})
+make_testpack(vararg)(nil)
+make_testpack(vararg)(nil, nil)
+make_testpack(vararg)(nil, 1, nil)
+make_testpack(vararg)(unpack(values, 1, 254))
 
 local ok, err = pcall(pack, unpack(values, 1, 255))
 if ok then -- Lua version
@@ -124,16 +133,15 @@ local function testrange(n, ...)
 	end
 end
 
-local ok, err = pcall(range, 0, 0, ...)
-if ok then -- Lua version
-	assert(err == nil)
-else -- C version
-	assert(ok == false and err == "bad argument #1 to '?' (index out of bounds)")
-end
+asserterror("bad argument #1 to '?' (index out of bounds)", range, 0, 0, 1,2,3)
 
 testrange(10)
 testrange(10, 1,2,3,4,5,6,7,8,9,0)
 testrange(maxstack, unpack(values, 1, maxstack))
+
+assertsame({}, 1,  1, range(1, 1))
+
+assertsame({}, 0, -1, range(2, 1))
 
 -- test other functions --------------------------------------------------------
 
@@ -191,5 +199,18 @@ asserterror("attempt to call a nil value", concat, nil)
 asserterror("bad argument #1 to '?' (value expected)", map)
 assertsame({}, 1, 0, map(nil))
 asserterror("attempt to call a nil value", map, nil, nil)
+
+assert(0 == count())
+assert(1 == count(nil))
+assert(3 == count(nil, 2, nil))
+
+asserterror("bad argument #1 to '?' (index out of bounds)", at,  0)
+asserterror("bad argument #1 to '?' (index out of bounds)", at, -1)
+assertsame({}, 0,  -1, at(1))
+assertsame({}, 0,  -1, at(2))
+assertsame({}, 1,   1, at(1, nil))
+assertsame({}, 0,  -1, at(2, nil))
+assertsame({2}, 1,  1, at(2, 1,2,3))
+assertsame({2}, 1,  1, at(-2, 1,2,3))
 
 print("done!")

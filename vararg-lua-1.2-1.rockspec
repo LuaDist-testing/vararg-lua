@@ -1,9 +1,17 @@
+-- This file was automatically generated for the LuaDist project.
+
 package="vararg-lua"
-version="scm-0"
+version="1.2-1"
+-- LuaDist source
 source = {
-   url = "https://github.com/moteus/lua-vararg/archive/master.zip",
-   dir = "lua-vararg-master",
+  tag = "1.2-1",
+  url = "git://github.com/LuaDist-testing/vararg-lua.git"
 }
+-- Original source
+-- source = {
+--    url = "https://github.com/moteus/lua-vararg/archive/v1.2.zip",
+--    dir = "lua-vararg-1.2",
+-- }
 description = {
    summary = "Manipulation of variable arguments",
    detailed = [[
@@ -19,7 +27,7 @@ dependencies = {
 }
 
 build = {
-   copy_directories = {},
+   copy_directories = {"test"},
    type = "builtin",
    modules = {
       vararg = "vararg.lua",

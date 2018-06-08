@@ -21,6 +21,8 @@ replace(v, i, ...) --> t={...} t[i]=v return unpack(t,1,select("#",...))
 append(v, ...)     --> c=select("#",...)+1 return unpack({[c]=val,...},1,c)
 map(f, ...)        --> t={} n=select("#",...) for i=1,n do t[i]=f((select(i,...))) end return unpack(t,1,n)
 concat(f1,f2,...)  --> return all the values returned by functions 'f1,f2,...'
+count(...)         --> select("#", ...)
+at(i, ...)         --> if select("#", ...) >= i then rutrn (select(i, ...)) end
 */
 
 #define LUA_VALIBNAME	"vararg"
@@ -28,12 +30,28 @@ concat(f1,f2,...)  --> return all the values returned by functions 'f1,f2,...'
 #include "lua.h"
 #include "lauxlib.h"
 
-#if LUA_VERSION_NUM >= 502 
+#if LUA_VERSION_NUM >= 503 /* Lua 5.3 */
+
+#ifndef luaL_checkint
+#define luaL_checkint luaL_checkinteger
+#endif
+
+#ifndef luaL_optint
+#define luaL_optint luaL_optinteger
+#endif
+
+#endif
+
+#if LUA_VERSION_NUM >= 502
+
+#ifndef luaL_register
 
 static void luaL_register (lua_State *L, const char *libname, const luaL_Reg *l){
   if(libname) lua_newtable(L);
   luaL_setfuncs(L, l, 0);
 }
+
+#endif
 
 #endif
 
@@ -90,6 +108,22 @@ static int luaVA_range(lua_State *L) {
 		luaL_error(L, "range is too big");
 	lua_settop(L, e);
 	return e-i+1;
+}
+
+static int luaVA_at(lua_State *L) {
+	int n, i;
+	n = lua_gettop(L);
+	i = _optindex(L, 1, n-1, 0)+1;
+	if (i > n) return 0;  /* no value */
+	lua_settop(L, i);
+	return 1;
+}
+
+static int luaVA_count(lua_State *L) {
+	int n = lua_gettop(L);
+	lua_settop(L, 0);
+	lua_pushinteger(L, n);
+	return 1;
 }
 
 static int luaVA_insert(lua_State *L) {
@@ -163,19 +197,31 @@ static int luaVA_concat(lua_State *L) {
 	return lua_gettop(L)-top;
 }
 
+static int luaVA_call(lua_State *L) {
+	lua_remove(L, 1);
+	return luaVA_pack(L);
+}
+
 static const luaL_Reg va_funcs[] = {
-	{"pack", luaVA_pack},
-	{"range", luaVA_range},
-	{"insert", luaVA_insert},
-	{"remove", luaVA_remove},
-	{"replace", luaVA_replace},
-	{"append", luaVA_append},
-	{"map", luaVA_map},
-	{"concat", luaVA_concat},
+	{ "pack",    luaVA_pack    },
+	{ "range",   luaVA_range   },
+	{ "insert",  luaVA_insert  },
+	{ "remove",  luaVA_remove  },
+	{ "replace", luaVA_replace },
+	{ "append",  luaVA_append  },
+	{ "map",     luaVA_map     },
+	{ "concat",  luaVA_concat  },
+	{ "count",   luaVA_count   },
+	{ "at",      luaVA_at      },
+
 	{NULL, NULL}
 };
 
 LUALIB_API int luaopen_vararg(lua_State *L) {
 	luaL_register(L, LUA_VALIBNAME, va_funcs);
+	lua_newtable(L);
+	lua_pushcfunction(L, luaVA_call);
+	lua_setfield(L, -2, "__call");
+	lua_setmetatable(L, -2);
 	return 1;
 }

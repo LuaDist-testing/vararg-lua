@@ -1,12 +1,9 @@
-local _G = require "_G"
-local error = _G.error
-local select = _G.select
-
-local math = require "math"
-local max = math.max
-
+local math  = require "math"
 local table = require "table"
-local unpack = table.unpack or _G.unpack
+
+local error, assert, select = error, assert, select
+local max, unpack = math.max, table.unpack or unpack
+local setmetatable = setmetatable
 
 local tinsert2 = function(t, n, i, v)
 	-- lua 5.2 rise error if index out of range
@@ -47,9 +44,16 @@ end
 
 local function idx(i, n, d)
 	if i == nil then
+		if not d then
+			return error("number expected, got nil", 2)
+		end
 		return d
-	elseif i < 0 then
+	end
+	if i < 0 then
 		i = n+i+1
+	end
+	if i <= 0 then
+		return error("index out of bounds", 2)
 	end
 	return i
 end
@@ -84,7 +88,9 @@ end
 
 local function range(i, j, ...)
 	local n = select("#", ...)
-	return unpack({...}, idx(i,n), idx(j,n))
+	i, j = idx(i,n), idx(j,n)
+	if i > j then return end
+	return unpack({...}, i, j)
 end
 
 local function remove(i, ...)
@@ -154,13 +160,30 @@ local function concat(...)
 	return unpack(t, 1, n)
 end
 
-return {
-	pack = pack,
-	range = range,
-	insert = insert,
-	remove = remove,
+local function count(...)
+	return select("#", ...)
+end
+
+local function at(i, ...)
+	local n = select("#", ...)
+	i = idx(i,n)
+	if i > n then return end
+	return (select(i, ...))
+end
+
+return setmetatable({
+	pack    = pack,
+	range   = range,
+	insert  = insert,
+	remove  = remove,
 	replace = replace,
-	append = append,
-	map = map,
-	concat = concat,
-}
+	append  = append,
+	map     = map,
+	concat  = concat,
+	count   = count,
+	at      = at,
+},{
+	__call = function(_, ...)
+		return pack(...)
+	end
+})

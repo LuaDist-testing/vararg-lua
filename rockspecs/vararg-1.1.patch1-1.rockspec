@@ -1,8 +1,8 @@
-package="vararg-lua"
-version="scm-0"
+package="vararg"
+version="1.1.patch1-1"
 source = {
-   url = "https://github.com/moteus/lua-vararg/archive/master.zip",
-   dir = "lua-vararg-master",
+   url = "https://github.com/moteus/lua-vararg/archive/v1.1.patch1.zip",
+   dir = "lua-vararg-1.1.patch1",
 }
 description = {
    summary = "Manipulation of variable arguments",
@@ -15,13 +15,13 @@ description = {
    license = "MIT/X11"
 }
 dependencies = {
-   "lua >= 5.1, < 5.4"
+   "lua >= 5.1, < 5.3"
 }
 
 build = {
    copy_directories = {},
    type = "builtin",
    modules = {
-      vararg = "vararg.lua",
+      vararg = "vararg.c"
    },
 }
